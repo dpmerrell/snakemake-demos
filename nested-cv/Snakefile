@@ -1,0 +1,104 @@
+import itertools as it
+
+configfile: "config.yaml"
+
+N_OUTER = config["n_outer"]
+N_INNER = config["n_inner"]
+SPLIT_DIR = config["split_dir"]
+SCORE_DIR = config["score_dir"]
+
+MODEL_FAMILIES = config["model_families"]
+
+def get_model_strs(family):
+
+    member_items = MODEL_FAMILIES[family].items()
+    member_names = [n for (n,v) in member_items]
+    member_values = [v for (n,v) in member_items]
+    print(member_items)
+    result = []
+
+    for i, model in enumerate(member_values):
+        model_items = model.items()
+        param_names = [n for (n,p) in model_items]
+        param_vecs = [p for (n,p) in model_items]
+        print(param_names)
+        print(param_vecs)
+
+        for grid_point in it.product(*param_vecs):
+            pairs = zip(param_names, grid_point)
+            pairs = ["{}={}".format(p[0], p[1]) for p in pairs]
+            result.append(member_names[i] + "::" + "::".join(pairs))
+    return result
+
+
+DATA_X = "raw_data/digits_X.csv"
+DATA_Y = "raw_data/digits_y.csv"
+
+
+rule all:
+    input:
+        expand(SCORE_DIR+"/{outer}/{inner}/{family}/{model}.json",
+               outer=range(N_OUTER), inner=range(N_INNER), 
+               family="trees", model=get_model_strs("trees"))
+
+
+rule get_data:
+    input:
+        "scripts/get_data.py"
+    output:
+        X=DATA_X,
+        y=DATA_Y
+    shell:
+        "python {input} {output.X} {output.y}"
+
+
+rule make_splits:
+    input:
+        DATA_Y
+    output:
+        outer_splits=expand(SPLIT_DIR+"/{outer}.json", outer=range(N_OUTER)),
+        inner_splits=expand(SPLIT_DIR+"/{outer}/{inner}.json", outer=range(N_OUTER), 
+                                                               inner=range(N_INNER))
+    shell:
+        "python scripts/make_splits.py {input} {N_OUTER} {N_INNER} {SPLIT_DIR}"
+
+
+rule train_and_score_inner:
+    input:
+        x=DATA_X,
+        y=DATA_Y,
+        split_idx=SPLIT_DIR+"/{outer}/{inner}.json"
+    output:
+        SCORE_DIR+"/{outer}/{inner}/{family}/{model_str}.json"
+    shell:
+        "python scripts/train_and_score.py {input.x} {input.y} {input.split_idx} {wildcards.model_str} {output}"
+
+
+#def get_inner_scores(wildcards):
+#    
+#    family = wildcards.family
+#    outer = wildcards.outer
+#    model_strs = get_model_strs(family)
+#
+#    return [SCORE_DIR + f"/{outer}/{inner}/{family}/{model}.json" for inner in range(N_INNER) for model in model_strs]
+
+#rule choose_best_from_inner:
+#    input:
+#        expand(SCORE_DIR+"/{{outer}}/{inner}/{{family}}/{model}.json", inner=range(N_INNER), 
+#                                                                       model=get_models()
+#    output:
+#        BEST_DIR+"/{outer}/{family}.json"
+#    shell:
+#        "python choose_best.py {input} {output}"
+
+
+#rule train_and_score_outer:
+#    input:
+#        x=DATA_X,
+#        y=DATA_Y,
+#        split_idx=SPLIT_DIR+"/{outer}.json"
+#        best_model=BEST_DIR+"/{outer}/{family}.json"
+#    output:
+        
+
+
