@@ -1,7 +1,8 @@
 
 import sys
 from sklearn.ensemble import * 
-from sklearn.neighbors import * 
+from sklearn.neighbors import *
+from sklearn.svm import * 
 from sklearn.metrics import accuracy_score
 import pandas as pd
 import json
