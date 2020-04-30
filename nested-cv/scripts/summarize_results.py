@@ -23,6 +23,7 @@ if __name__=="__main__":
         family = get_family_name(in_file)
 
         results[family].append(score_dict["score"])
+        results[family+"_model"].append(score_dict["model_str"])
 
     with open(out_file, "w") as f:
         json.dump(results, f)

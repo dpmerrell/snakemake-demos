@@ -36,6 +36,7 @@ N_INNER = config["n_inner"]
 SPLIT_DIR = config["split_dir"]
 SCORE_DIR = config["score_dir"]
 BEST_DIR = config["best_dir"]
+SUMMARY_FILE = config["summary_file"]
 
 MODEL_FAMILIES = config["model_families"]
 
@@ -46,8 +47,9 @@ DATA_Y = "raw_data/digits_y.csv"
 
 rule all:
     input:
-        expand(SCORE_DIR+"/{outer}/{family}_score.json", outer=range(N_OUTER),
-                                                               family=MODEL_FAMILIES.keys())
+        SUMMARY_FILE
+
+
 
 rule get_data:
     input:
@@ -110,5 +112,14 @@ rule train_and_score_outer:
     shell:
         "python scripts/train_and_score.py {input.x} {input.y} {input.split_idx} none {output} {input.best_model}"
 
+
+rule summarize_results:
+    input:
+        expand(SCORE_DIR+"/{outer}/{family}_score.json", outer=range(N_OUTER),
+                                                         family=MODEL_FAMILIES.keys())
+    output:
+        SUMMARY_FILE
+    shell:
+        "python scripts/summarize_results.py {input} {output}"
 
 

@@ -1,23 +1,26 @@
 
-n_outer: 2
-n_inner: 2
+n_outer: 5
+n_inner: 5
 
 split_dir: "splits"
 score_dir: "scores"
-best_dir: "fold_best"
+best_dir: "best_models"
+summary_file: "nested_cv_summary.json"
 
 model_families:
     trees:
         RandomForestClassifier:
-            n_estimators: [5, 15, 25]
-            criterion: ["entropy"]
-        #ExtraTreesClassifier:
-            #n_estimators: [5, 10, 15]
-            #criterion: ["gini", "entropy"]
+            n_estimators: [5, 15, 30]
+            criterion: ["entropy", "gini"]
+        ExtraTreesClassifier:
+            n_estimators: [5, 15, 30]
+            criterion: ["gini", "entropy"]
     
     neighbors:
         KNeighborsClassifier:
             n_neighbors: [1, 2, 3] 
-            weights: ["distance"] #["uniform", "distance"]
+            weights: ["distance", "uniform"]
 
-
+    svm:
+        SVC:
+            kernel: ["linear", "rbf", "poly"]
