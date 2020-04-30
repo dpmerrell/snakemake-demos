@@ -1,22 +1,23 @@
 
-n_outer: 5
-n_inner: 5
+n_outer: 2
+n_inner: 2
 
 split_dir: "splits"
 score_dir: "scores"
+best_dir: "fold_best"
 
 model_families:
     trees:
         RandomForestClassifier:
-            n_estimators: [5, 10, 15]
-            criterion: ["gini", "entropy"]
-        ExtraTreesClassifier:
-            n_estimators: [5, 10, 15]
-            criterion: ["gini", "entropy"]
+            n_estimators: [5, 15, 25]
+            criterion: ["entropy"]
+        #ExtraTreesClassifier:
+            #n_estimators: [5, 10, 15]
+            #criterion: ["gini", "entropy"]
     
     neighbors:
         KNeighborsClassifier:
-            n_neighbors: [1, 5, 10]
-            weights: ["uniform", "distance"]
+            n_neighbors: [1, 2, 3] 
+            weights: ["distance"] #["uniform", "distance"]
 
 

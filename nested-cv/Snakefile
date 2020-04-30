@@ -1,13 +1,11 @@
+# Snakefile
+# 2020-04-29
+# David Merrell
+# 
+# This Snakefile defines a pipeline for nested cross-validation.
+# See `config.yaml` for important parameter settings.
+
 import itertools as it
-
-configfile: "config.yaml"
-
-N_OUTER = config["n_outer"]
-N_INNER = config["n_inner"]
-SPLIT_DIR = config["split_dir"]
-SCORE_DIR = config["score_dir"]
-
-MODEL_FAMILIES = config["model_families"]
 
 def get_model_strs(family):
 
@@ -31,16 +29,25 @@ def get_model_strs(family):
     return result
 
 
+configfile: "config.yaml"
+
+N_OUTER = config["n_outer"]
+N_INNER = config["n_inner"]
+SPLIT_DIR = config["split_dir"]
+SCORE_DIR = config["score_dir"]
+BEST_DIR = config["best_dir"]
+
+MODEL_FAMILIES = config["model_families"]
+
+
 DATA_X = "raw_data/digits_X.csv"
 DATA_Y = "raw_data/digits_y.csv"
 
 
 rule all:
     input:
-        expand(SCORE_DIR+"/{outer}/{inner}/{family}/{model}.json",
-               outer=range(N_OUTER), inner=range(N_INNER), 
-               family="trees", model=get_model_strs("trees"))
-
+        expand(SCORE_DIR+"/{outer}/{family}_score.json", outer=range(N_OUTER),
+                                                               family=MODEL_FAMILIES.keys())
 
 rule get_data:
     input:
@@ -74,31 +81,34 @@ rule train_and_score_inner:
         "python scripts/train_and_score.py {input.x} {input.y} {input.split_idx} {wildcards.model_str} {output}"
 
 
-#def get_inner_scores(wildcards):
-#    
-#    family = wildcards.family
-#    outer = wildcards.outer
-#    model_strs = get_model_strs(family)
-#
-#    return [SCORE_DIR + f"/{outer}/{inner}/{family}/{model}.json" for inner in range(N_INNER) for model in model_strs]
+def get_inner_score_files(wildcards):
+    
+    family = wildcards.family
+    outer = wildcards.outer
+    model_strs = get_model_strs(family)
 
-#rule choose_best_from_inner:
-#    input:
-#        expand(SCORE_DIR+"/{{outer}}/{inner}/{{family}}/{model}.json", inner=range(N_INNER), 
-#                                                                       model=get_models()
-#    output:
-#        BEST_DIR+"/{outer}/{family}.json"
-#    shell:
-#        "python choose_best.py {input} {output}"
+    return [SCORE_DIR + f"/{outer}/{inner}/{family}/{model}.json" for inner in range(N_INNER) for model in model_strs]
 
 
-#rule train_and_score_outer:
-#    input:
-#        x=DATA_X,
-#        y=DATA_Y,
-#        split_idx=SPLIT_DIR+"/{outer}.json"
-#        best_model=BEST_DIR+"/{outer}/{family}.json"
-#    output:
-        
+rule choose_best_from_inner:
+    input:
+        get_inner_score_files
+    output:
+        BEST_DIR+"/{outer}/{family}.json"
+    shell:
+        "python scripts/choose_best.py {input} {output}"
+
+
+rule train_and_score_outer:
+    input:
+        x=DATA_X,
+        y=DATA_Y,
+        split_idx=SPLIT_DIR+"/{outer}.json",
+        best_model=BEST_DIR+"/{outer}/{family}.json"
+    output:
+        SCORE_DIR+"/{outer}/{family}_score.json"
+    shell:
+        "python scripts/train_and_score.py {input.x} {input.y} {input.split_idx} none {output} {input.best_model}"
+
 
 

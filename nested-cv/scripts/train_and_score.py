@@ -66,6 +66,12 @@ if __name__=="__main__":
     model_str = sys.argv[4]
     output_file = sys.argv[5]
 
+    if len(sys.argv) == 7:
+        best_file = sys.argv[6]
+        with open(best_file, "r") as f:
+            d = json.load(f)
+            model_str = d["model_str"]
+
     model_dict = parse_model_str(model_str)
     model = construct_model(model_dict)
 
